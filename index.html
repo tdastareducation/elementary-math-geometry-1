@@ -2456,6 +2456,16 @@ const h=parseInt(location.hash.slice(1));go(h>0?h-1:(S.page||0));
 #kbConfirm button{font:inherit;font-size:16px;font-weight:800;color:#fff;background:var(--kbc,#2e9e3a);border:0;border-radius:11px;padding:9px 20px;min-height:42px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #kbConfirm button:active{filter:brightness(.92)}
 @media (pointer:coarse){input.g{font-size:max(16px,1em)}}
+/* background colour on / off */
+body.nobgc{background-color:#fff!important}
+body.nobgc #bgfx{visibility:hidden}
+.bgb{flex:none;width:32px;height:32px;border:0;border-radius:8px;background:#eef2f6;color:#1d2433;display:none;align-items:center;justify-content:center;padding:0;margin-left:-2px;cursor:pointer}
+.bgb svg{width:19px;height:19px}
+.bgb .bgo{fill:var(--bgbc,#2e9e3a)}
+body.nobgc .bgb .bgo{fill:#fff}
+.bgb .bgr{fill:none;stroke:currentColor;stroke-width:2}
+@media (pointer:coarse),(max-width:1024px){.bgb{display:flex}}
+
 </style>
 <div id="kbConfirm" role="toolbar" aria-label="Answer keyboard"><span class="kbl">Answer:</span><span class="kbv" id="kbVal"></span><button type="button" id="kbOk">✔ Confirm</button></div>
 <script id="kbjs">
@@ -2464,7 +2474,7 @@ const h=parseInt(location.hash.slice(1));go(h>0?h-1:(S.page||0));
  const SEL='input.g, #sola input, .sola input';
  const isAns=el=>!!(el&&el.matches&&el.matches(SEL));
  const bar=document.getElementById('kbConfirm'),val=document.getElementById('kbVal'),ok=document.getElementById('kbOk');
- const prep=root=>root.querySelectorAll(SEL).forEach(i=>{i.setAttribute('enterkeyhint','done');i.setAttribute('autocomplete','off');i.setAttribute('autocorrect','off')});
+ const prep=root=>root.querySelectorAll(SEL).forEach(i=>{i.setAttribute('enterkeyhint','done');i.setAttribute('inputmode','text');i.removeAttribute('readonly');i.setAttribute('autocomplete','off');i.setAttribute('autocorrect','off')});
  prep(document);
  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(isAns(n))prep(n.parentNode||document);else prep(n)}}))).observe(document.body,{childList:true,subtree:true});
  let cur=null;
@@ -2490,6 +2500,33 @@ const h=parseInt(location.hash.slice(1));go(h>0?h-1:(S.page||0));
  const fin=e=>{if(!pend)return;const p=pend;pend=null;if(Math.hypot(e.clientX-p.x,e.clientY-p.y)>25)return;e.preventDefault();e.stopImmediatePropagation();p.el.focus();try{const n=p.el.value.length;p.el.setSelectionRange(n,n)}catch(_){}};
  document.addEventListener('pointerup',fin,true);
  document.addEventListener('pointermove',e=>{if(pend)e.stopImmediatePropagation()},true);
+ /* fallback: a tap on an answer box always opens the device keyboard (also "… = …" boxes) */
+ let ts=null;
+ document.addEventListener('touchstart',e=>{const t=e.touches[0];ts=(e.touches.length===1&&isAns(e.target))?{el:e.target,x:t.clientX,y:t.clientY,t:Date.now()}:null},{capture:true,passive:true});
+ document.addEventListener('touchend',e=>{if(!ts)return;const s=ts;ts=null;const t=e.changedTouches[0];
+  if(e.target!==s.el||Math.hypot(t.clientX-s.x,t.clientY-s.y)>12||Date.now()-s.t>800)return;
+  if(document.activeElement===s.el)return;
+  e.preventDefault();s.el.focus();try{const n=s.el.value.length;s.el.setSelectionRange(n,n)}catch(_){}},{capture:true,passive:false});
+})();
+</script>
+
+<script id="bgcjs">
+(()=>{
+ const KEY='em1-bgc';let on=true;try{on=localStorage.getItem(KEY)!=='0'}catch(e){}
+ const top=document.querySelector('header.top'),fs=document.getElementById('fsBtn');
+ const b=document.createElement('button');b.className='bgb';b.id='bgBtn';b.type='button';
+ b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="bgo" cx="12" cy="12" r="8.5"/><circle class="bgr" cx="12" cy="12" r="8.5"/></svg>';
+ if(top)top.insertBefore(b,fs||null);
+ const fx=document.querySelector('#drawer .fxsw');
+ const lab=document.createElement('label');lab.className='fxsw';lab.innerHTML='<input type="checkbox" id="bgcon"> 🎨 Background colour';
+ if(fx)fx.parentNode.insertBefore(lab,fx);const cb=lab.querySelector('input');
+ const tint=()=>{const pg=document.querySelector('.page.on');const c=pg?getComputedStyle(pg).getPropertyValue('--c').trim():'';b.style.setProperty('--bgbc',c||'#2e9e3a')};
+ const apply=()=>{document.body.classList.toggle('nobgc',!on);cb.checked=on;b.setAttribute('aria-pressed',on?'true':'false');
+  b.title=on?'Background colour: ON (tap to turn off)':'Background colour: OFF (tap to turn on)';b.setAttribute('aria-label',b.title);tint()};
+ const set=v=>{on=v;try{localStorage.setItem(KEY,v?'1':'0')}catch(e){}apply()};
+ b.addEventListener('click',()=>set(!on));cb.addEventListener('change',()=>set(cb.checked));
+ new MutationObserver(tint).observe(document.getElementById('book'),{subtree:true,attributes:true,attributeFilter:['class']});
+ apply();
 })();
 </script>
 
