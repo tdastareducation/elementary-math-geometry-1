@@ -2345,7 +2345,7 @@ const WB=(()=>{
  function marks(){const col=st.tool==='hl'?st.hlColor:st.color;fly.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('on',b.dataset.c===col));const zs=st.tool==='eraser'?({4:2,8:4,16:8,32:14})[st.esize]:st.size;fly.querySelectorAll('[data-z]').forEach(b=>b.classList.toggle('on',+b.dataset.z===zs));fly.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===st.shape));fly.querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===st.emode));fly.classList.toggle('area',st.emode==='area');try{document.getElementById('wbpick').value=col.length===7?col:'#dc2626'}catch(e){}
   document.querySelector('.wbt[data-t=pen]').style.setProperty('--wbc',st.color==='#ffffff'?'#374151':st.color);document.querySelector('.wbt[data-t=hl]').style.setProperty('--wbc',st.hlColor==='#ffffff'?'#374151':st.hlColor)}
  document.getElementById('wbpick').addEventListener('input',e=>{const v=e.target.value;if(st.tool==='hl')st.hlColor=v;else st.color=v;marks()});
- document.getElementById('wbtab').addEventListener('click',()=>{const o=!wb.classList.contains('open');wb.classList.toggle('open',o);document.getElementById('wbtab').setAttribute('aria-label',o?'Close drawing tools':'Open drawing tools');if(!o){fly.hidden=true;setTool('cursor')}});
+ document.getElementById('wbtab').addEventListener('click',()=>{const o=!wb.classList.contains('open');wb.classList.toggle('open',o);document.getElementById('wbtab').setAttribute('aria-label',o?'Close drawing tools':'Open drawing tools');if(!o){fly.hidden=true;if(!(matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0))setTool('cursor')}});
  wb.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   if(b.dataset.t){if(b.dataset.t===st.tool&&!fly.hidden&&b.dataset.t!=='cursor'){fly.hidden=true;return}setTool(b.dataset.t);return}
   if(b.dataset.sa){attach();selAction(b.dataset.sa);return}
@@ -2527,6 +2527,41 @@ body.nobgc .bgb .bgo{fill:#fff}
  b.addEventListener('click',()=>set(!on));cb.addEventListener('change',()=>set(cb.checked));
  new MutationObserver(tint).observe(document.getElementById('book'),{subtree:true,attributes:true,attributeFilter:['class']});
  apply();
+})();
+</script>
+
+<!-- ===== drawing toolbar on phone / tablet: keep tool when closed, fit in landscape ===== -->
+<style id="wbmcss">
+.wbbar.wbgrid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--wbrows),auto);column-gap:4px;row-gap:4px;align-content:start}
+.wbbar.wbgrid .wbsep{display:none}
+.wbbar.wbgrid .wbzl{height:36px!important}
+.wb:not(.open) .wbtab.act::after{content:"";position:absolute;top:7px;left:50%;width:9px;height:9px;border-radius:50%;transform:translateX(-50%);background:var(--wbtc,#1a56db);box-shadow:0 0 0 2px #fff}
+.wbtab{overflow:visible}
+</style>
+<script id="wbmjs">
+(()=>{
+ const wb=document.getElementById('wb'),bar=document.getElementById('wbbar'),tab=document.getElementById('wbtab'),fly=document.getElementById('wbfly');
+ if(!wb||!bar)return;
+ /* fit the toolbar in the screen height: split it into 2-3 columns when it does not fit (phone in landscape) */
+ function fit(){
+  bar.classList.remove('wbgrid');bar.style.removeProperty('--wbrows');
+  const hd=document.querySelector('header.top');const hh=hd&&getComputedStyle(hd).position!=='static'?hd.getBoundingClientRect().bottom:0;
+  const free=window.innerHeight-Math.max(0,hh);const avail=free-16;
+  wb.style.top=(Math.max(0,hh)+free/2)+'px';
+  if(bar.scrollHeight<=avail)return;
+  const items=[...bar.children].filter(c=>!c.classList.contains('wbsep'));
+  const b=items[0].getBoundingClientRect().height||36,gap=4,pad=16;
+  const rows=Math.max(3,Math.floor((avail-pad+gap)/(b+gap)));
+  bar.style.setProperty('--wbrows',rows);bar.classList.add('wbgrid');
+  if(fly){const fh=fly.scrollHeight;fly.style.maxHeight=avail+'px';fly.style.overflowY=fh>avail?'auto':''}
+ }
+ addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,300));
+ if(window.visualViewport)visualViewport.addEventListener('resize',fit);
+ fit();setTimeout(fit,500);
+ /* closed tab shows a coloured dot while a drawing tool is still active */
+ const mark=()=>{const on=document.body.classList.contains('drawing');tab.classList.toggle('act',on);
+  const t=document.querySelector('.wbt.on');const c=t?getComputedStyle(t).color:'';tab.style.setProperty('--wbtc',c||'#1a56db')};
+ new MutationObserver(mark).observe(document.body,{attributes:true,attributeFilter:['class']});mark();
 })();
 </script>
 
